@@ -1,0 +1,35 @@
+function connect(){
+	var a=io.connect(SERVER);
+	a.on("status",function(a){STATUS=a.data})
+		,a.emit("getMeIn"),
+		a.on("youAreIn",function(a)
+		{
+			chrome.browserAction.setBadgeText({text:"ON"});
+			var b=io.connect(SERVER+"/"+a.id);
+			globalSocket=b,uniqueID=a.id
+		})
+}
+
+function send(a){
+	"object"==typeof a&&a.__proto__!==Blob.prototype
+		&&(a=JSON.stringify(a)),"undefined"==typeof socket
+		&&(socket=globalSocket),socket.emit("stream",{data:a})
+}
+
+function convertDataURIToBlob(a,b){
+	if(!a)
+		return new Uint8Array(0);
+	for(var c=";base64,",d=a.indexOf(c)+c.length,e=a.substring(d),
+		f=window.atob(e),
+		g=new Uint8Array(f.length),
+		h=0;g.length>h;++h)
+	
+	g[h]=f.charCodeAt(h);
+	return new Blob([g],{type:b})
+}
+var STATUS=null,SERVER;
+
+localStorage.screensharing_server_name===void 
+	0?(SERVER="deadsimplescreensharing.com",localStorage.screensharing_server_name="deadsimplescreensharing.com"):SERVER=localStorage.screensharing_server_name;
+	
+		var uniqueID=null,globalSocket;
