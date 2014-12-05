@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Virtual Monitor</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+        margin: 0px;
+        overflow: hidden;
+      }
+      #screenview {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    </style>
+	
+	<script type="text/javascript" src="server/public/js/socket.io.min.js">
+	<script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js">
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
+	
+  </head>
+  <body>
+
+    <div id="screenview"></div>
+	<script type="text/javascript" src="server/public/js/post.js">
+
+  <script src="js/third-party/threejs/three.min.js"></script>
+  <script src="js/third-party/threejs/StereoEffect.js"></script>
+  <script src="js/third-party/threejs/DeviceOrientationControls.js"></script>
+  <script src="js/third-party/threejs/OrbitControls.js"></script>
+  
+ 
+
+  <script>
+    var camera, scene, renderer;
+    var effect, controls;
+    var element, container;
+	
+	//variables used for retrieving and formatting screenshot sent by post.js serverside
+	var canvas = document.createElement("canvas");
+	var context = canvas.getContext("2d");
+	var screentexture = new THREE.Texture(canvas);
+	//screenshot is a global variable that transmits the stream in a jpeg file
+	var screentexture;
+	screenshot.onload = function(){
+		screentexture = THREE.ImageUtils.loadTexture(screenshot.src);
+		
+		screentexture.needsUpdate = true;
+		
+	};
+	
+	screen.src = 'textures/patterns/checker.png'
+	
+    var clock = new THREE.Clock();
+
+    init();
+    animate();
+
+    function init() {
+	//initialize the renderer
+      renderer = new THREE.WebGLRenderer();
+      element = renderer.domElement;
+      container = document.getElementById('screenview');
+      container.appendChild(element);
+
+      effect = new THREE.StereoEffect(renderer);
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(90, 1, 0.001, 700);
+      camera.position.set(0, 10, 0);
+	  //camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), 90*Math.PI / 180);
+      scene.add(camera);
+	  //set the cameras/controls
+      controls = new THREE.OrbitControls(camera, element);
+      
+	  controls.rotateLeft(Math.PI / 2);
+      controls.target.set(
+        camera.position.x + 0.1,
+        camera.position.y,
+        camera.position.z
+      );
+	  
+      controls.noZoom = true;
+      controls.noPan = true;
+		//set the screen to be moveable using the mouse and/or tilt of the device
+      function setOrientationControls(e) {
+        if (!e.alpha) {
+          return;
+        }
+		//set control settings
+        controls = new THREE.DeviceOrientationControls(camera, true);
+        controls.connect();
+        controls.update();
+
+        element.addEventListener('click', fullscreen, false);
+
+        window.removeEventListener('deviceorientation', setOrientationControls);
+      }
+      window.addEventListener('deviceorientation', setOrientationControls, true);
+
+	  //flooring is used to give an idea of perspective
+      var texture = THREE.ImageUtils.loadTexture(
+        'textures/patterns/checker.png'
+      );
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat = new THREE.Vector2(30, 30);
+
+      var material = new THREE.MeshBasicMaterial({
+        map: texture
+      });
+	  
+      var geometry = new THREE.PlaneGeometry(1000, 1000);
+
+      var mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.x = -Math.PI / 2;
+      scene.add(mesh);
+	 //the "screen" itself
+	   var screendim = new THREE.PlaneGeometry(42, 25);
+	   
+	   screentexture = THREE.ImageUtils.loadTexture(screenshot.src);
+	   //do not need wrapS or wrapT because the default will wrap around the edges
+	   //getMaxAnistropy for highest possible resolution
+	   screentexture.anisotropy = renderer.getMaxAnisotropy();
+	   
+	   var screenmaterial = new THREE.MeshBasicMaterial({ map: screentexture});
+	   
+	   var screenmesh = new THREE.Mesh(screendim, screenmaterial);
+	   //make sure the screen is perpendicular to the camera
+	   screenmesh.rotation.y = -Math.PI;
+	   screenmesh.position.set( 0, 10 , 25)
+		scene.add( screenmesh );
+	  
+      window.addEventListener('resize', resize, false);
+      setTimeout(resize, 1);
+    }
+	
+    function resize() {
+	//will resize the window according to the detected dimensions
+      var width = container.offsetWidth;
+      var height = container.offsetHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      effect.setSize(width, height);
+    }
+	//updating screen size
+    function update(dt) {
+      resize();
+
+      camera.updateProjectionMatrix();
+
+      controls.update(dt);
+    }
+
+    function render(dt) {
+	//if a new image is loaded, reload the texture and rerender
+	if(screenshot.onload){
+		
+		screentexture = THREE.ImageUtils.loadTexture(screenshot.src);
+
+	}
+	
+      effect.render(scene, camera);
+    }
+
+    function animate(t) {
+	//render and switch between frames
+      requestAnimationFrame(animate);
+
+      update(clock.getDelta());
+      render(clock.getDelta());
+    }
+	//options for fullscreening
+    function fullscreen() {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      }
+    }
+  </script>
+  </body>
+</html>
